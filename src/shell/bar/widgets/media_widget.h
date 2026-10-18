@@ -41,6 +41,7 @@ public:
     bool hideArtist = false;
     bool artistFirst = false;
     bool showProgress = false;
+    bool showControls = false;
   };
 
   MediaWidget(MprisService* mpris, HttpClient* httpClient, wl_output* output, Options options);
@@ -76,6 +77,7 @@ private:
   bool m_hideArtist = false;
   bool m_artistFirst = false;
   bool m_showProgress = false;
+  bool m_showControls = false;
   // Cached from the last doLayout(); the update phase has no container extents of its own.
   bool m_isVertical = false;
   bool m_progressFillVisible = false;
@@ -85,6 +87,12 @@ private:
   Glyph* m_emptyGlyph = nullptr;
   Label* m_label = nullptr;
   ProgressBar* m_progressBar = nullptr;
+  InputArea* m_prevArea = nullptr;
+  InputArea* m_toggleArea = nullptr;
+  InputArea* m_nextArea = nullptr;
+  Glyph* m_prevGlyph = nullptr;
+  Glyph* m_toggleGlyph = nullptr;
+  Glyph* m_nextGlyph = nullptr;
 
   std::string m_lastText;
   std::string m_lastArtUrl;

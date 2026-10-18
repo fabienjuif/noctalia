@@ -108,6 +108,14 @@ const noctalia::bar::WidgetDefinition<MediaWidget::Options>& mediaWidgetDefiniti
                       .horizontalBarOnly = true,
                   },
           }),
+          field<&Options::showControls>({
+              .key = "show_controls",
+              .presentation =
+                  settings::WidgetSettingPresentation{
+                      .visibleWhen = notAlbumArtOnly,
+                      .horizontalBarOnly = true,
+                  },
+          }),
           field<&Options::hideWhenNoMedia>({
               .key = "hide_when_no_media",
           }),

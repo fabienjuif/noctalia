@@ -4781,6 +4781,10 @@
           "description": "Fill the widget background to show playback progress",
           "label": "Show Playback Progress"
         },
+        "show-controls": {
+          "description": "Show previous, play/pause and next buttons after the title",
+          "label": "Show Playback Controls"
+        },
         "show-running": {
           "description": "Show running windows that are not in the pinned list",
           "label": "Show Running"

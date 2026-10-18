@@ -15,6 +15,7 @@
 #include <chrono>
 #include <cmath>
 #include <numbers>
+#include <utility>
 #include <wayland-client-protocol.h>
 
 using namespace mpris;
@@ -31,7 +32,8 @@ MediaWidget::MediaWidget(MprisService* mpris, HttpClient* httpClient, wl_output*
       m_titleScrollMode(options.titleScrollMode), m_hideWhenNoMedia(options.hideWhenNoMedia),
       m_hideWhenIdle(options.hideWhenIdle), m_rotateAlbumArt(options.rotateAlbumArt),
       m_albumArtOnly(options.albumArtOnly), m_hideAlbumArt(options.hideAlbumArt), m_hideArtist(options.hideArtist),
-      m_artistFirst(options.artistFirst), m_showProgress(options.showProgress) {}
+      m_artistFirst(options.artistFirst), m_showProgress(options.showProgress),
+      m_showControls(options.showControls) {}
 
 void MediaWidget::create() {
   auto area = ui::inputArea({});
@@ -91,6 +93,31 @@ void MediaWidget::create() {
           .visible = false,
       })
   );
+
+  if (m_showControls) {
+    // Each control is its own InputArea so its click is consumed before the widget's own actions.
+    const auto addControl = [this, &area](InputArea*& outArea, Glyph*& outGlyph, const char* glyphName, auto action) {
+      auto control = ui::inputArea({});
+      control->addChild(
+          ui::glyph({
+              .out = &outGlyph,
+              .glyph = glyphName,
+              .glyphSize = Style::baseGlyphSize * m_contentScale,
+              .color = widgetIconColorOr(colorSpecFromRole(ColorRole::OnSurface)),
+          })
+      );
+      control->setOnClick([this, action](const InputArea::PointerData&) {
+        if (m_mpris != nullptr) {
+          action(*m_mpris);
+        }
+      });
+      outArea = control.get();
+      area->addChild(std::move(control));
+    };
+    addControl(m_prevArea, m_prevGlyph, "player-skip-back", [](MprisService& mpris) { mpris.previousActive(); });
+    addControl(m_toggleArea, m_toggleGlyph, "player-play", [](MprisService& mpris) { mpris.playPauseActive(); });
+    addControl(m_nextArea, m_nextGlyph, "player-skip-forward", [](MprisService& mpris) { mpris.nextActive(); });
+  }
 
   setRoot(std::move(area));
 }
@@ -190,7 +217,26 @@ void MediaWidget::doLayout(Renderer& renderer, float containerWidth, float conta
     }
     const float contentWidth = showLabel ? m_label->x() + m_label->width()
                                          : (showArtSlot ? artSize : (showEmptyGlyph ? m_emptyGlyph->width() : 0.0F));
-    rootNode->setSize(std::clamp(contentWidth, minLength, maxLength), contentHeight);
+    float width = std::clamp(contentWidth, minLength, maxLength);
+    if (m_showControls && m_prevGlyph != nullptr && m_toggleGlyph != nullptr && m_nextGlyph != nullptr) {
+      m_toggleGlyph->setGlyph(m_lastPlaybackStatus == "Playing" ? "player-pause" : "player-play");
+      float x = width + Style::spaceSm;
+      for (auto [control, glyph] : {std::pair{m_prevArea, m_prevGlyph}, std::pair{m_toggleArea, m_toggleGlyph},
+                                    std::pair{m_nextArea, m_nextGlyph}}) {
+        glyph->setGlyphSize(Style::baseGlyphSize * m_contentScale);
+        glyph->measure(renderer);
+        glyph->setPosition(0.0F, 0.0F);
+        contentHeight = std::max(contentHeight, glyph->height());
+        control->setSize(glyph->width(), glyph->height());
+        control->setPosition(x, 0.0F);
+        x += glyph->width() + Style::spaceXs;
+      }
+      for (auto* control : {m_prevArea, m_toggleArea, m_nextArea}) {
+        control->setPosition(control->x(), std::round((contentHeight - control->height()) * 0.5F));
+      }
+      width = x - Style::spaceXs;
+    }
+    rootNode->setSize(width, contentHeight);
   }
   m_progressBar->setVisible(showProgressFill);
   if (showProgressFill) {
@@ -331,6 +377,9 @@ void MediaWidget::syncState(Renderer& renderer, const std::optional<MprisPlayerI
 
   if (playbackChanged && !textChanged && !artChanged && !artAwaitingDecode) {
     m_lastPlaybackStatus = playbackStatus;
+    if (m_toggleGlyph != nullptr) {
+      m_toggleGlyph->setGlyph(m_lastPlaybackStatus == "Playing" ? "player-pause" : "player-play");
+    }
     m_label->setColor(
         m_lastPlaybackStatus == "Playing" ? widgetForegroundOr(colorSpecFromRole(ColorRole::OnSurface))
                                           : colorSpecFromRole(ColorRole::OnSurfaceVariant)
