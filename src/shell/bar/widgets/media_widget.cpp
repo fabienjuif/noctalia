@@ -188,7 +188,50 @@ void MediaWidget::doLayout(Renderer& renderer, float containerWidth, float conta
   if (showEmptyGlyph) {
     contentHeight = std::max(contentHeight, m_emptyGlyph->height());
   }
-  if (artOnly) {
+  const bool hasControls = m_showControls && m_prevArea != nullptr && m_toggleArea != nullptr && m_nextArea != nullptr;
+  // album_art_only + show_controls: prev | artwork (acts as play/pause) | next.
+  const bool controlsAroundArt = hasControls && artOnly && !m_isVertical;
+  if (hasControls) {
+    for (auto* control : {m_prevArea, m_toggleArea, m_nextArea}) {
+      control->setVisible(!m_isVertical);
+    }
+  }
+  if (controlsAroundArt) {
+    const bool playing = m_lastPlaybackStatus == "Playing";
+    const float gap = Style::spaceXs;
+    float height = 0.0F;
+    for (auto* glyph : {m_prevGlyph, m_nextGlyph}) {
+      glyph->setGlyphSize(Style::baseGlyphSize * m_contentScale);
+      glyph->measure(renderer);
+      glyph->setPosition(0.0F, 0.0F);
+      height = std::max(height, glyph->height());
+    }
+    const float centerW = showArtSlot ? artSize : m_emptyGlyph->width();
+    const float centerH = showArtSlot ? artSize : m_emptyGlyph->height();
+    height = std::max(height, centerH);
+
+    m_prevArea->setSize(m_prevGlyph->width(), m_prevGlyph->height());
+    m_prevArea->setPosition(0.0F, std::round((height - m_prevGlyph->height()) * 0.5F));
+    const float centerX = m_prevGlyph->width() + gap;
+    const float centerY = std::round((height - centerH) * 0.5F);
+    m_art->setPosition(centerX, centerY);
+    m_emptyGlyph->setPosition(centerX, centerY);
+    // Paused: dim the artwork and overlay a play glyph so the state reads at a glance.
+    m_art->setOpacity(playing ? 1.0F : 0.55F);
+    m_toggleGlyph->setGlyph("player-play-filled");
+    m_toggleGlyph->setGlyphSize(Style::baseGlyphSize * m_contentScale * 0.7F);
+    m_toggleGlyph->measure(renderer);
+    m_toggleGlyph->setVisible(!playing);
+    m_toggleGlyph->setPosition(
+        std::round((centerW - m_toggleGlyph->width()) * 0.5F), std::round((centerH - m_toggleGlyph->height()) * 0.5F)
+    );
+    m_toggleArea->setSize(centerW, centerH);
+    m_toggleArea->setPosition(centerX, centerY);
+    const float nextX = centerX + centerW + gap;
+    m_nextArea->setSize(m_nextGlyph->width(), m_nextGlyph->height());
+    m_nextArea->setPosition(nextX, std::round((height - m_nextGlyph->height()) * 0.5F));
+    rootNode->setSize(nextX + m_nextGlyph->width(), height);
+  } else if (artOnly) {
     if (showArtSlot) {
       m_art->setPosition(0.0F, 0.0F);
       rootNode->setSize(artSize, artSize);
@@ -218,7 +261,9 @@ void MediaWidget::doLayout(Renderer& renderer, float containerWidth, float conta
     const float contentWidth = showLabel ? m_label->x() + m_label->width()
                                          : (showArtSlot ? artSize : (showEmptyGlyph ? m_emptyGlyph->width() : 0.0F));
     float width = std::clamp(contentWidth, minLength, maxLength);
-    if (m_showControls && m_prevGlyph != nullptr && m_toggleGlyph != nullptr && m_nextGlyph != nullptr) {
+    if (hasControls) {
+      m_art->setOpacity(1.0F);
+      m_toggleGlyph->setVisible(true);
       m_toggleGlyph->setGlyph(m_lastPlaybackStatus == "Playing" ? "player-pause-filled" : "player-play-filled");
       float x = width + Style::spaceSm;
       for (auto [control, glyph] : {std::pair{m_prevArea, m_prevGlyph}, std::pair{m_toggleArea, m_toggleGlyph},
@@ -387,7 +432,11 @@ void MediaWidget::syncState(Renderer& renderer, const std::optional<MprisPlayerI
     if (needsFrameTick()) {
       requestFrameTick();
     }
-    requestRedraw();
+    if (m_showControls) {
+      requestUpdate();
+    } else {
+      requestRedraw();
+    }
     return;
   }
 
