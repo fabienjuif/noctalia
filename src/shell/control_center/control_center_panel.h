@@ -97,7 +97,7 @@ public:
   [[nodiscard]] bool deferExternalRefresh() const override;
   [[nodiscard]] bool deferPointerRelayout() const override;
   [[nodiscard]] float preferredWidth() const override;
-  [[nodiscard]] float preferredHeight() const override { return scaled(520.0F); }
+  [[nodiscard]] float preferredHeight() const override { return scaled(680.0F); }
   [[nodiscard]] PanelPlacement panelPlacement() const noexcept override;
   [[nodiscard]] bool showsSidebar() const noexcept { return m_showSidebar; }
 
