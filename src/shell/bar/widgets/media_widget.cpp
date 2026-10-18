@@ -114,9 +114,9 @@ void MediaWidget::create() {
       outArea = control.get();
       area->addChild(std::move(control));
     };
-    addControl(m_prevArea, m_prevGlyph, "player-skip-back", [](MprisService& mpris) { mpris.previousActive(); });
-    addControl(m_toggleArea, m_toggleGlyph, "player-play", [](MprisService& mpris) { mpris.playPauseActive(); });
-    addControl(m_nextArea, m_nextGlyph, "player-skip-forward", [](MprisService& mpris) { mpris.nextActive(); });
+    addControl(m_prevArea, m_prevGlyph, "player-track-prev-filled", [](MprisService& mpris) { mpris.previousActive(); });
+    addControl(m_toggleArea, m_toggleGlyph, "player-play-filled", [](MprisService& mpris) { mpris.playPauseActive(); });
+    addControl(m_nextArea, m_nextGlyph, "player-track-next-filled", [](MprisService& mpris) { mpris.nextActive(); });
   }
 
   setRoot(std::move(area));
@@ -219,7 +219,7 @@ void MediaWidget::doLayout(Renderer& renderer, float containerWidth, float conta
                                          : (showArtSlot ? artSize : (showEmptyGlyph ? m_emptyGlyph->width() : 0.0F));
     float width = std::clamp(contentWidth, minLength, maxLength);
     if (m_showControls && m_prevGlyph != nullptr && m_toggleGlyph != nullptr && m_nextGlyph != nullptr) {
-      m_toggleGlyph->setGlyph(m_lastPlaybackStatus == "Playing" ? "player-pause" : "player-play");
+      m_toggleGlyph->setGlyph(m_lastPlaybackStatus == "Playing" ? "player-pause-filled" : "player-play-filled");
       float x = width + Style::spaceSm;
       for (auto [control, glyph] : {std::pair{m_prevArea, m_prevGlyph}, std::pair{m_toggleArea, m_toggleGlyph},
                                     std::pair{m_nextArea, m_nextGlyph}}) {
@@ -378,7 +378,7 @@ void MediaWidget::syncState(Renderer& renderer, const std::optional<MprisPlayerI
   if (playbackChanged && !textChanged && !artChanged && !artAwaitingDecode) {
     m_lastPlaybackStatus = playbackStatus;
     if (m_toggleGlyph != nullptr) {
-      m_toggleGlyph->setGlyph(m_lastPlaybackStatus == "Playing" ? "player-pause" : "player-play");
+      m_toggleGlyph->setGlyph(m_lastPlaybackStatus == "Playing" ? "player-pause-filled" : "player-play-filled");
     }
     m_label->setColor(
         m_lastPlaybackStatus == "Playing" ? widgetForegroundOr(colorSpecFromRole(ColorRole::OnSurface))
