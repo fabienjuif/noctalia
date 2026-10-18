@@ -19,6 +19,12 @@ const noctalia::bar::WidgetDefinition<ClockWidget::Options>& clockWidgetDefiniti
           field<&Options::timezone>({
               .key = "timezone",
           }),
+          field<&Options::secondaryLines>({
+              .key = "secondary_lines",
+          }),
+          field<&Options::secondaryColor>({
+              .key = "secondary_color",
+          }),
       },
   };
   return definition;

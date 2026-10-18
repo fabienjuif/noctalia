@@ -1,6 +1,7 @@
 #pragma once
 
 #include "shell/bar/widget.h"
+#include "ui/palette.h"
 
 #include <cstdint>
 #include <string>
@@ -15,6 +16,9 @@ public:
     std::string verticalFormat;
     std::string tooltipFormat;
     std::string timezone;
+    // Vertical bars only: the last N lines of the text use secondary_color, so one widget can hold two colors.
+    std::int32_t secondaryLines = 0;
+    ColorSpec secondaryColor = colorSpecFromRole(ColorRole::OnSurfaceVariant);
   };
 
   ClockWidget(wl_output* output, Options options);
@@ -30,6 +34,8 @@ private:
   std::string m_verticalFormat;
   std::string m_tooltipFormat;
   std::string m_timezone;
+  std::int32_t m_secondaryLines = 0;
+  ColorSpec m_secondaryColor;
   bool m_isVertical = false;
   Label* m_label = nullptr;
   Label* m_secondaryLabel = nullptr;

@@ -24,11 +24,23 @@ namespace {
     }
     return {text.substr(0, newline), text.substr(newline + 1)};
   }
+
+  std::pair<std::string_view, std::string_view> splitLastLines(std::string_view text, int count) {
+    std::size_t cut = text.size();
+    for (int i = 0; i < count; ++i) {
+      cut = text.rfind('\n', cut == 0 ? 0 : cut - 1);
+      if (cut == std::string_view::npos) {
+        return {text, {}};
+      }
+    }
+    return {text.substr(0, cut), text.substr(cut + 1)};
+  }
 } // namespace
 
 ClockWidget::ClockWidget(wl_output* /*output*/, Options options)
     : m_format(std::move(options.format)), m_verticalFormat(std::move(options.verticalFormat)),
-      m_tooltipFormat(std::move(options.tooltipFormat)), m_timezone(std::move(options.timezone)) {}
+      m_tooltipFormat(std::move(options.tooltipFormat)), m_timezone(std::move(options.timezone)),
+      m_secondaryLines(options.secondaryLines), m_secondaryColor(options.secondaryColor) {}
 
 std::string ClockWidget::formatTimeText() const {
   if (!m_isVertical) {
@@ -117,14 +129,15 @@ void ClockWidget::doLayout(Renderer& renderer, float containerWidth, float conta
   update(renderer);
   const ColorSpec foreground = widgetForegroundOr(colorSpecFromRole(ColorRole::OnSurface));
   m_label->setColor(foreground);
-  m_secondaryLabel->setColor(foreground);
+  m_secondaryLabel->setColor(m_isVertical ? m_secondaryColor : foreground);
 
-  const bool showSecondary = !m_isVertical && !m_lastSecondaryText.empty();
+  const bool showSecondary = !m_lastSecondaryText.empty();
+  const bool stacked = showSecondary && !m_isVertical;
   const bool noCapsule = !barCapsuleSpec().enabled;
   const float stackedPrimaryScale = noCapsule ? kStackedPrimaryScaleNoCapsule : kStackedPrimaryScale;
   const float stackedSecondaryScale = noCapsule ? kStackedSecondaryScaleNoCapsule : kStackedSecondaryScale;
-  float primaryFontSize = Style::fontSizeBody * fontScale() * (showSecondary ? stackedPrimaryScale : 1.0F);
-  float secondaryFontSize = Style::fontSizeBody * fontScale() * stackedSecondaryScale;
+  float primaryFontSize = Style::fontSizeBody * fontScale() * (stacked ? stackedPrimaryScale : 1.0F);
+  float secondaryFontSize = Style::fontSizeBody * fontScale() * (m_isVertical ? 1.0F : stackedSecondaryScale);
   const FontWeight fontWeight = labelFontWeight();
 
   // Horizontal clocks use single-line metrics unless the configured format
@@ -141,14 +154,14 @@ void ClockWidget::doLayout(Renderer& renderer, float containerWidth, float conta
   m_secondaryLabel->setVisible(showSecondary);
   m_secondaryLabel->setMaxLines(0);
   m_secondaryLabel->setMinWidth(0.0F);
-  m_secondaryLabel->setMaxWidth(0.0F);
+  m_secondaryLabel->setMaxWidth(m_isVertical ? containerWidth : 0.0F);
   if (showSecondary) {
     m_secondaryLabel->measure(renderer);
   }
 
   float width = showSecondary ? std::max(m_label->width(), m_secondaryLabel->width()) : m_label->width();
   float height = showSecondary ? m_label->height() + m_secondaryLabel->height() : m_label->height();
-  if (!m_isVertical && showSecondary && containerHeight > 0.0F && height > containerHeight) {
+  if (stacked && containerHeight > 0.0F && height > containerHeight) {
     const float fitScale = std::min(containerHeight / height, 1.0F);
     primaryFontSize *= fitScale;
     secondaryFontSize *= fitScale;
@@ -160,7 +173,7 @@ void ClockWidget::doLayout(Renderer& renderer, float containerWidth, float conta
     height = m_label->height() + m_secondaryLabel->height();
   }
 
-  if (showSecondary) {
+  if (stacked) {
     const auto primaryMetrics =
         renderer.measureText(m_lastPrimaryText, primaryFontSize, fontWeight, 0.0F, 1, TextAlign::Start);
     const auto secondaryMetrics =
@@ -173,6 +186,9 @@ void ClockWidget::doLayout(Renderer& renderer, float containerWidth, float conta
     const float secondaryInkCenterX = (secondaryMetrics.inkLeft + secondaryMetrics.inkRight) * 0.5F;
     m_label->setPosition(std::round(centerX - primaryInkCenterX), 0.0F);
     m_secondaryLabel->setPosition(std::round(centerX - secondaryInkCenterX), m_label->height());
+  } else if (showSecondary) {
+    m_label->setPosition(std::round((width - m_label->width()) * 0.5F), 0.0F);
+    m_secondaryLabel->setPosition(std::round((width - m_secondaryLabel->width()) * 0.5F), m_label->height());
   } else {
     m_label->setPosition(0.0F, 0.0F);
   }
@@ -193,6 +209,10 @@ void ClockWidget::doUpdate(Renderer& renderer) {
   std::string secondaryText;
   if (!m_isVertical) {
     const auto [primary, secondary] = splitFirstLine(m_lastText);
+    primaryText = std::string(primary);
+    secondaryText = std::string(secondary);
+  } else if (m_secondaryLines > 0) {
+    const auto [primary, secondary] = splitLastLines(m_lastText, m_secondaryLines);
     primaryText = std::string(primary);
     secondaryText = std::string(secondary);
   }
