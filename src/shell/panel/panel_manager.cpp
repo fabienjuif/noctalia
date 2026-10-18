@@ -2249,6 +2249,8 @@ void PanelManager::applyAttachedReveal(float progress) {
 }
 
 void PanelManager::applyDetachedReveal(float progress) {
+  // Unclamped so EaseOutBack's overshoot reaches the pop scale.
+  const float rawProgress = progress;
   m_detachedRevealProgress = std::clamp(progress, 0.0F, 1.0F);
   if (m_attachedToBar || m_sceneRoot == nullptr) {
     if (!m_attachedToBar && m_surface != nullptr) {
@@ -2264,21 +2266,12 @@ void PanelManager::applyDetachedReveal(float progress) {
   float clipW = surfaceW;
   float clipH = surfaceH;
 
-  switch (m_detachedRevealDirection) {
-  case AttachedRevealDirection::Down:
-    clipH = std::round(surfaceH * m_detachedRevealProgress);
-    break;
-  case AttachedRevealDirection::Up:
-    clipH = std::round(surfaceH * m_detachedRevealProgress);
-    clipY = surfaceH - clipH;
-    break;
-  case AttachedRevealDirection::Right:
-    clipW = std::round(surfaceW * m_detachedRevealProgress);
-    break;
-  case AttachedRevealDirection::Left:
-    clipW = std::round(surfaceW * m_detachedRevealProgress);
-    clipX = surfaceW - clipW;
-    break;
+  // Local patch: floating panels pop (scale + fade) instead of wiping in from the bar side.
+  (void)m_detachedRevealDirection;
+  if (m_detachedRevealContentNode != nullptr) {
+    const float popScale = 0.9F + 0.1F * rawProgress;
+    m_detachedRevealContentNode->setScale(popScale);
+    m_detachedRevealContentNode->setOpacity(m_detachedRevealProgress);
   }
 
   if (m_detachedRevealClipNode != nullptr && m_detachedRevealContentNode != nullptr) {
@@ -2723,7 +2716,7 @@ void PanelManager::buildScene(std::uint32_t width, std::uint32_t height) {
     } else {
       applyDetachedReveal(0.0F);
       m_animations.animate(
-          0.0F, 1.0F, Style::animNormal, Easing::EaseOutCubic, [this](float v) { applyDetachedReveal(v); }, {},
+          0.0F, 1.0F, Style::animNormal, Easing::EaseOutBack, [this](float v) { applyDetachedReveal(v); }, {},
           m_sceneRoot.get()
       );
     }
