@@ -175,7 +175,7 @@ namespace {
   std::optional<BarConfig> resolvePanelBarConfig(
       ConfigService* configService, CompositorPlatform* platform, wl_output* output,
       const std::function<std::optional<BarConfig>(wl_output*, std::string_view)>& barConfigProvider,
-      std::string_view barName = {}
+      std::string_view barName = {}, std::string_view panelBar = {}
   ) {
     if (configService == nullptr || configService->config().bars.empty()) {
       return BarConfig{};
@@ -183,7 +183,8 @@ namespace {
 
     const auto& bars = configService->config().bars;
     const std::string_view panelAnchorBar = configService->config().shell.panelAnchorBar;
-    const std::string_view effectiveName = !panelAnchorBar.empty() ? panelAnchorBar : barName;
+    const std::string_view effectiveName =
+        !panelBar.empty() ? panelBar : (!panelAnchorBar.empty() ? panelAnchorBar : barName);
 
     const WaylandOutput* wlOutput = nullptr;
     if (platform != nullptr && output != nullptr) {
@@ -288,6 +289,14 @@ namespace {
 
   // Floating screen position for a built-in panel (one of kPanelPositions).
   // "auto" = bar-relative (and the default for any non-built-in panel).
+  // Local patch: per-panel bar override (only the launcher has one so far).
+  [[nodiscard]] std::string_view resolvePanelBar(const ConfigService* configService, std::string_view panelId) {
+    if (configService == nullptr || panelId != "launcher") {
+      return {};
+    }
+    return configService->config().shell.panel.launcherBar;
+  }
+
   [[nodiscard]] std::string resolvePanelPosition(const ConfigService* configService, std::string_view panelId) {
     if (configService == nullptr) {
       return "auto";
@@ -602,8 +611,10 @@ void PanelManager::openPanel(const std::string& panelId, PanelOpenRequest reques
     return;
   }
 
-  auto barConfigOpt =
-      resolvePanelBarConfig(m_config, m_platform, request.output, m_barConfigProvider, request.sourceBarName);
+  auto barConfigOpt = resolvePanelBarConfig(
+      m_config, m_platform, request.output, m_barConfigProvider, request.sourceBarName,
+      resolvePanelBar(m_config, panelId)
+  );
   if (!barConfigOpt.has_value()) {
     return;
   }
@@ -2599,7 +2610,9 @@ void PanelManager::onConfigReloaded() {
     return;
   }
 
-  const auto barConfigOpt = resolvePanelBarConfig(m_config, m_platform, m_output, m_barConfigProvider, m_sourceBarName);
+  const auto barConfigOpt = resolvePanelBarConfig(
+      m_config, m_platform, m_output, m_barConfigProvider, m_sourceBarName, resolvePanelBar(m_config, m_activePanelId)
+  );
   if (!barConfigOpt.has_value()) {
     return;
   }

@@ -1410,6 +1410,7 @@ namespace noctalia::config::schema {
           field(&ShellConfig::PanelConfig::wallpaperPosition, "wallpaper_position"),
           field(&ShellConfig::PanelConfig::sessionPosition, "session_position"),
           field(&ShellConfig::PanelConfig::polkitPosition, "polkit_position"),
+          field(&ShellConfig::PanelConfig::launcherBar, "launcher_bar"),
           field(&ShellConfig::PanelConfig::floatingOffset, "floating_offset", Range<std::int64_t>{0, 100}),
           field(&ShellConfig::PanelConfig::openNearClickControlCenter, "open_near_click_control_center"),
           field(&ShellConfig::PanelConfig::openNearClickLauncher, "open_near_click_launcher"),

@@ -1131,6 +1131,8 @@ struct ShellConfig {
     std::string wallpaperPosition = "auto";
     std::string sessionPosition = "auto";
     std::string polkitPosition = "center";
+    // Bar the launcher attaches to, overriding shell.panel_anchor_bar and the opening bar; empty = default.
+    std::string launcherBar;
     std::int32_t floatingOffset = 8; // logical px gap between a floating/detached panel and the bar edge
     bool openNearClickControlCenter = false;
     bool openNearClickLauncher = false;
