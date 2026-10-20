@@ -31,7 +31,7 @@ border             = "outline"   # color role or #RRGGBB for the bar outline
 border_width       = 0.0         # inside outline width in pixels; 0 disables it
 shadow             = true        # cast the global [shell.shadow]
 contact_shadow     = false       # dark gradient between an attached panel and the bar (depth at the seam)
-panel_overlap      = 1           # logical px an attached panel overlaps the bar edge to hide the seam
+panel_overlap      = 1           # logical px an attached panel overlaps the bar edge to hide the seam (-2 to 256)
 radius             = 12          # global corner radius fallback
 radius_top_left    = 12
 radius_top_right   = 12
@@ -153,7 +153,7 @@ Shadow blur, offset, and alpha are global under `[shell.shadow]`. Bars only expo
 
 `contact_shadow = true` adds a dark gradient at the seam between an attached panel and the bar, giving the panel a slight lifted-off-the-bar feel. It is independent of `shadow` and only takes effect on attached panels; the change applies on the next panel open.
 
-`panel_overlap` controls how many logical pixels an attached panel is pulled into the bar so the two surfaces share an edge instead of leaving a hairline gap. The ideal value depends on your compositor and the output's fractional scale (it comes down to physical-pixel rounding), so it is tunable rather than fixed. The default is `1`. If you see a faint seam line, try `0`; if a gap appears, raise it. Negative values push the panel away from the bar. Because the right value tracks fractional scale, you can set it per monitor with a `[bar.<name>.monitor.*]` override on a mixed-scale multi-monitor setup. In the Settings GUI it lives under **Bar → Layout → Advanced**.
+`panel_overlap` controls how many logical pixels an attached panel is pulled into the bar so the two surfaces share an edge instead of leaving a hairline gap. The ideal value depends on your compositor and the output's fractional scale (it comes down to physical-pixel rounding), so it is tunable rather than fixed. The default is `1`. If you see a faint seam line, try `0`; if a gap appears, raise it. Negative values push the panel away from the bar. Large values (up to `256`) pull the panel over the bar itself: `thickness + margin_edge` makes it hang from the screen edge, over the bar's widgets. Because the right value tracks fractional scale, you can set it per monitor with a `[bar.<name>.monitor.*]` override on a mixed-scale multi-monitor setup. In the Settings GUI it lives under **Bar → Layout → Advanced**.
 
 `capsule_thickness` sets the widget capsule size across the bar (its height on a horizontal bar, width on a vertical bar) as a fraction of the bar thickness. The default is `0.76`; `1.0` makes capsules fill the full bar thickness and lower values shrink them, leaving more margin on either side. It applies to every capsule on the bar regardless of per-widget content scale. In the Settings GUI it lives under **Bar → Capsules**.
 
