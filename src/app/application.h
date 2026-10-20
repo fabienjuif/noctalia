@@ -67,6 +67,7 @@
 #include "system/dependency_service.h"
 #include "system/desktop_entry_poll_source.h"
 #include "system/gamma_service.h"
+#include "system/icon_resolver.h"
 #include "system/icon_theme_poll_source.h"
 #include "system/location_poll_source.h"
 #include "system/location_service.h"
@@ -214,6 +215,7 @@ private:
   void installSecretServiceCollectionWatch();
   void onSecretServiceCollectionChanged();
   void retrySecretServiceConsumers(bool defaultCollectionUnlocked = false);
+  void refreshNotificationIsland();
   void scheduleNotificationShellRefresh();
   void syncPolkitAgent();
   [[nodiscard]] bool likelySupportsInSessionPolkit() const noexcept;
@@ -365,6 +367,9 @@ private:
   KeyboardLayoutOsd m_keyboardLayoutOsd;
   PrivacyOsd m_privacyOsd;
   OsdOverlay m_osdOverlay;
+  OsdOverlay m_notificationIsland;
+  std::uint32_t m_notificationIslandId = 0;
+  IconResolver m_notificationIslandIcons;
   HotCorners m_hotCorners{this};
   ScreenCorners m_screenCorners;
   TrayMenu m_trayMenu;

@@ -685,7 +685,6 @@ void NotificationManager::removeHistoryEntry(uint32_t id, std::optional<CloseRea
     return;
   }
 
-  const bool hadUnreadBefore = computeHasUnreadNotificationHistory();
   const CloseReason reason =
       dbusCloseReason.value_or(m_history[it->second].closeReason.value_or(CloseReason::Dismissed));
   emitPendingDBusClose(id, reason);
@@ -693,7 +692,11 @@ void NotificationManager::removeHistoryEntry(uint32_t id, std::optional<CloseRea
   ++m_changeSerial;
   rebuildHistoryIndex();
   schedulePersistHistory();
-  notifyUnreadStateChangedIfNeeded(hadUnreadBefore);
+  // Local patch: always notify, not only on unread flips; the bar's notification island shows the newest
+  // history entry and must update when it is deleted.
+  if (m_stateCallback) {
+    m_stateCallback();
+  }
 }
 
 void NotificationManager::clearHistory() {
@@ -710,6 +713,9 @@ void NotificationManager::clearHistory() {
   ++m_changeSerial;
   markNotificationHistorySeen();
   schedulePersistHistory();
+  if (m_stateCallback) {
+    m_stateCallback();
+  }
 }
 
 std::vector<uint32_t> NotificationManager::expiredIds() const {

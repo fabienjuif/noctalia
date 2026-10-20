@@ -15,6 +15,7 @@
 #include <string_view>
 #include <unordered_map>
 #include <unordered_set>
+#include <utility>
 #include <vector>
 
 class TaskbarWidget;
@@ -96,6 +97,9 @@ public:
   // coordinates. Used by the panel click shield to keep clicks on bar widgets
   // flowing to the bar instead of dismissing the active panel.
   [[nodiscard]] std::vector<InputRect> surfaceRectsForOutput(wl_output* output) const;
+  // Local patch: output-local x range of the empty stretch between the center and end sections of the first
+  // top bar on the output, for overlays that want to fill it (notification island).
+  [[nodiscard]] std::optional<std::pair<float, float>> centerEndGap(wl_output* output) const;
   // Returns every bar wl_surface across all outputs. Used as the focus-grab
   // whitelist on Hyprland so bar widgets keep receiving clicks.
   [[nodiscard]] std::vector<wl_surface*> allBarSurfaces() const;

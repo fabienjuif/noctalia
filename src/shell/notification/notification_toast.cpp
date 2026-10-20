@@ -676,6 +676,9 @@ void NotificationToast::onNotificationEvent(const Notification& n, NotificationE
         && n.dndPolicy == NotificationDndPolicy::Respect) {
       break;
     }
+    if (m_config != nullptr && m_config->config().notification.style == "island") {
+      break;
+    }
     m_pendingAdds.push_back(n);
     schedulePendingAdds();
     break;

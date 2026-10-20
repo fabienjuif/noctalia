@@ -4,22 +4,28 @@
 #include "wayland/layer_surface.h"
 
 #include <cstdint>
+#include <functional>
 #include <memory>
 #include <optional>
 #include <string>
+#include <utility>
 #include <vector>
 
 class ConfigService;
+struct Config;
+struct OsdConfig;
 class CompositorPlatform;
 class IpcService;
 class Box;
 class Flex;
 class Glyph;
+class Image;
 class Label;
 class ProgressBar;
 class RenderContext;
 class WaylandConnection;
 struct WaylandOutput;
+struct PointerEvent;
 struct wl_output;
 struct wl_surface;
 
@@ -37,7 +43,8 @@ enum class OsdKind : std::uint8_t {
   KeyboardLayout,
   Media,
   Privacy,
-  KeyboardBacklight
+  KeyboardBacklight,
+  Notification
 };
 
 struct OsdContent {
@@ -48,6 +55,12 @@ struct OsdContent {
   bool showProgress = true;
   bool overLimit = false;
   bool inactive = false;
+  // Stays up until hide() instead of timing out (notification island).
+  bool persistent = false;
+  // When set and loadable, shown in place of the glyph (notification app icon).
+  std::string imagePath;
+  // Icon pinned to the leading edge, text centered in the remaining width (notification island).
+  bool leadingIcon = false;
 };
 
 class OsdOverlay {
@@ -58,8 +71,13 @@ public:
   OsdOverlay(const OsdOverlay&) = delete;
   OsdOverlay& operator=(const OsdOverlay&) = delete;
 
+  // Local patch: the selector picks which OsdConfig drives this overlay, so a second instance can render
+  // notifications from [notification.island] with the same look.
+  using ConfigSelector = const OsdConfig& (*)(const Config&);
+  static const OsdConfig& selectOsdConfig(const Config& config);
   void initialize(
-      WaylandConnection& wayland, CompositorPlatform& platform, ConfigService* config, RenderContext* renderContext
+      WaylandConnection& wayland, CompositorPlatform& platform, ConfigService* config, RenderContext* renderContext,
+      ConfigSelector configSelector = &OsdOverlay::selectOsdConfig
   );
   void registerIpc(IpcService& ipc);
   void onOutputChange();
@@ -68,6 +86,13 @@ public:
   void requestRedraw();
 
   void show(const OsdContent& content);
+  void hide();
+  // Makes the card clickable; without it the overlay stays input-transparent.
+  void setOnClick(std::function<void()> onClick);
+  bool onPointerEvent(const PointerEvent& event);
+  // Supplies the output-local x range fill_bar_gap stretches over; re-queried by syncSpan().
+  void setSpanProvider(std::function<std::optional<std::pair<float, float>>()> provider);
+  void syncSpan();
   [[nodiscard]] bool isEnabled() const noexcept;
 
   // True while any instance is on screen or animating into view. Callers use this to correct
@@ -96,6 +121,8 @@ private:
     Flex* row = nullptr;
     Box* background = nullptr;
     Glyph* glyph = nullptr;
+    Image* image = nullptr;
+    std::string loadedImagePath;
     Label* value = nullptr;
     ProgressBar* progress = nullptr;
     float progressValueMinWidth = 0.0F;
@@ -118,12 +145,21 @@ private:
   void buildScene(Instance& inst, std::uint32_t width, std::uint32_t height);
   void updateInstanceContent(Instance& inst);
   void updateBlurRegion(Instance& inst) const;
+  [[nodiscard]] const OsdConfig& osdConfig() const;
+  [[nodiscard]] const OsdConfig* osdConfigOrNull() const;
+  [[nodiscard]] float lengthScale() const;
+  [[nodiscard]] float fontScale() const;
+  [[nodiscard]] float effectiveCardWidth(float s) const;
+  [[nodiscard]] std::optional<std::pair<float, float>> querySpan() const;
+  [[nodiscard]] bool islandStyle() const;
   void applyReveal(Instance& inst, float reveal);
   void animateInstance(Instance& inst);
+  void startHideAnimation(Instance& inst);
 
   WaylandConnection* m_wayland = nullptr;
   CompositorPlatform* m_platform = nullptr;
   ConfigService* m_config = nullptr;
+  ConfigSelector m_configSelector = &OsdOverlay::selectOsdConfig;
   RenderContext* m_renderContext = nullptr;
   OsdContent m_content;
   std::string m_lastPosition;
@@ -137,4 +173,8 @@ private:
   std::optional<bool> m_runtimeEnabledOverride;
   bool m_lastConfiguredEnabled = true;
   std::vector<std::unique_ptr<Instance>> m_instances;
+  std::function<void()> m_onClick;
+  std::function<std::optional<std::pair<float, float>>()> m_spanProvider;
+  std::optional<std::pair<float, float>> m_span;
+  float m_spanCardWidth = 0.0F;
 };

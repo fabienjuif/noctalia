@@ -152,6 +152,7 @@ void Application::scheduleNotificationShellRefresh() {
   DeferredCall::callLater([this]() {
     m_notificationShellRefreshScheduled = false;
     m_bar.refresh();
+    refreshNotificationIsland();
     if (m_panelManager.isOpenPanel("control-center")) {
       m_panelManager.refresh();
     }
@@ -860,6 +861,7 @@ void Application::reconcileOutputSurfaces() {
   m_screenshotService.onOutputChange();
   m_notificationToast.onOutputChange();
   m_osdOverlay.onOutputChange();
+  m_notificationIsland.onOutputChange();
   m_windowSwitcher.onOutputChange();
 }
 

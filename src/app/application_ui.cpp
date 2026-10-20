@@ -47,6 +47,7 @@
 #include "launcher/session_provider.h"
 #include "launcher/wallpaper_provider.h"
 #include "launcher/window_provider.h"
+#include "notification/notification_display_name.h"
 #include "notification/notifications.h"
 #include "pipewire/pipewire_poll_source.h"
 #include "pipewire/pipewire_service.h"
@@ -77,8 +78,10 @@
 #include "shell/tray/tray_drawer_panel.h"
 #include "shell/wallpaper/panel/wallpaper_panel.h"
 #include "shell/wallpaper/wallpaper_paths.h"
+#include "system/app_identity.h"
 #include "system/brightness_poll_source.h"
 #include "system/brightness_service.h"
+#include "system/desktop_entry.h"
 #include "system/distro_info.h"
 #include "system/easyeffects_service.h"
 #include "system/system_monitor_service.h"
@@ -459,6 +462,8 @@ void Application::initInputDispatch() {
       return;
     if (m_hotCorners.onPointerEvent(event))
       return;
+    if (m_notificationIsland.onPointerEvent(event))
+      return;
     m_notificationToast.onPointerEvent(event);
   });
 
@@ -739,6 +744,50 @@ void Application::initPanelManagerAndPanels() {
   }
 }
 
+// Local patch: the island shows the newest notification still in history until it is deleted (Backspace or
+// trash in the notifications tab). No unseen count: the bar's notifications widget already shows that.
+void Application::refreshNotificationIsland() {
+  const auto& history = m_notificationManager.history();
+  const NotificationHistoryEntry* latest = history.empty() ? nullptr : &history.back();
+  if (m_configService.config().notification.style != "island"
+      || latest == nullptr
+      || m_notificationManager.doNotDisturb()) {
+    m_notificationIslandId = 0;
+    if (m_notificationIsland.isVisible()) {
+      m_notificationIsland.hide();
+    }
+    return;
+  }
+
+  const Notification& n = latest->notification;
+  const std::string appName = notificationDisplayAppName(n);
+  std::string text = n.summary;
+  if (!n.body.empty()) {
+    text += text.empty() ? n.body : " \u00b7 " + n.body;
+  }
+  std::string iconPath;
+  const std::string appKey = n.desktopEntry.value_or(appName);
+  if (!appKey.empty()) {
+    if (const auto entry = app_identity::findDesktopEntry(appKey, desktopEntries());
+        entry.has_value() && !entry->icon.empty()) {
+      iconPath = entry->icon.front() == '/' ? entry->icon : m_notificationIslandIcons.resolve(entry->icon, 64);
+    }
+  }
+  m_notificationIslandId = n.id;
+  m_notificationIsland.show(
+      OsdContent{
+          .kind = OsdKind::Notification,
+          .icon = n.urgency == Urgency::Critical ? "alert-triangle" : "bell",
+          .value = text,
+          .showProgress = false,
+          .overLimit = n.urgency == Urgency::Critical,
+          .persistent = true,
+          .imagePath = iconPath,
+          .leadingIcon = true,
+      }
+  );
+}
+
 void Application::initNotificationAndOsd() {
   m_notificationToast.initialize(
       m_wayland, m_compositorPlatform, &m_configService, &m_notificationManager, &m_renderContext, &m_httpClient
@@ -764,11 +813,32 @@ void Application::initNotificationAndOsd() {
 
   TooltipManager::instance().initialize(m_wayland, &m_configService, &m_renderContext);
   m_osdOverlay.initialize(m_wayland, m_compositorPlatform, &m_configService, &m_renderContext);
+  m_notificationIsland.initialize(
+      m_wayland, m_compositorPlatform, &m_configService, &m_renderContext,
+      [](const Config& config) -> const OsdConfig& { return config.notification.island; }
+  );
+  m_notificationIsland.setSpanProvider([this]() -> std::optional<std::pair<float, float>> {
+    for (const auto& output : m_wayland.outputs()) {
+      if (const auto gap = m_bar.centerEndGap(output.output); gap.has_value()) {
+        return gap;
+      }
+    }
+    return std::nullopt;
+  });
+  m_notificationIsland.setOnClick([this]() {
+    if (m_notificationIslandId == 0 || !m_notificationManager.invokeAction(m_notificationIslandId, "default", true)) {
+      PanelManager::instance().togglePanel("control-center", PanelOpenRequest{.context = "notifications"});
+    }
+  });
   m_windowSwitcher.initialize(
       m_wayland, &m_renderContext, m_compositorPlatform, &m_configService, &m_asyncTextureCache
   );
   m_configService.addReloadCallback([this]() { m_windowSwitcher.onConfigReload(); });
   m_configService.addReloadCallback([this]() { m_osdOverlay.onConfigReload(); });
+  m_configService.addReloadCallback([this]() {
+    m_notificationIsland.onConfigReload();
+    refreshNotificationIsland();
+  });
   m_idleGraceOverlay.initialize(m_wayland, &m_renderContext);
   m_wayland.setIdleCapabilitiesReadyCallback([this]() { m_idleManager.reload(m_configService.config().idle); });
   m_idleManager.initialize(
@@ -1066,6 +1136,7 @@ void Application::initWidgetControllersAndCallbacks() {
         m_notificationToast.requestLayout();
         m_lockScreen.onFontChanged();
         m_osdOverlay.requestLayout();
+        m_notificationIsland.requestLayout();
         m_trayMenu.onFontChanged();
         m_backdrop.onFontChanged();
         m_settingsWindow.onFontChanged();
@@ -1096,6 +1167,7 @@ void Application::initWidgetControllersAndCallbacks() {
         m_notificationToast.requestLayout();
         m_lockScreen.onFontChanged();
         m_osdOverlay.requestLayout();
+        m_notificationIsland.requestLayout();
         m_trayMenu.onFontChanged();
         m_backdrop.onFontChanged();
         m_settingsWindow.onFontChanged();
@@ -1113,6 +1185,11 @@ void Application::initWidgetControllersAndCallbacks() {
       m_lockscreenWidgetsController.onSecondTick();
     } else {
       m_bar.onSecondTick();
+      // History loaded at startup emits no event, so pick the island up here once the bar exists.
+      if (!m_notificationIsland.isVisible() && !m_notificationManager.history().empty()) {
+        refreshNotificationIsland();
+      }
+      m_notificationIsland.syncSpan();
       m_desktopWidgetsController.onSecondTick();
       m_lockscreenWidgetsController.onSecondTick();
       m_settingsWindow.onSecondTick();

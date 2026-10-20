@@ -2107,6 +2107,35 @@ std::vector<InputRect> Bar::surfaceRectsForOutput(wl_output* output) const {
   return rects;
 }
 
+std::optional<std::pair<float, float>> Bar::centerEndGap(wl_output* output) const {
+  for (const auto& instance : m_instances) {
+    if (instance == nullptr
+        || instance->output != output
+        || instance->surface == nullptr
+        || instance->barConfig.position != "top"
+        || instance->centerSection == nullptr
+        || instance->endSection == nullptr) {
+      continue;
+    }
+    const auto* surface = instance->surface.get();
+    // Top bars span the output between their end margins, so the surface origin is the left margin.
+    const auto originX = static_cast<float>(surface->marginLeft());
+    float centerX = 0.0F;
+    float centerY = 0.0F;
+    float endX = 0.0F;
+    float endY = 0.0F;
+    Node::absolutePosition(instance->centerSection, centerX, centerY);
+    Node::absolutePosition(instance->endSection, endX, endY);
+    const float gapStart = originX + centerX + instance->centerSection->width();
+    const float gapEnd = originX + endX;
+    if (gapEnd <= gapStart) {
+      return std::nullopt;
+    }
+    return std::pair{gapStart, gapEnd};
+  }
+  return std::nullopt;
+}
+
 std::vector<wl_surface*> Bar::allBarSurfaces() const {
   std::vector<wl_surface*> surfaces;
   surfaces.reserve(m_instances.size());

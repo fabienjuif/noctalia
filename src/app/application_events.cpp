@@ -107,6 +107,7 @@ void Application::requestAllSurfacesRedraw() {
     m_panelManager.requestRedraw();
     m_notificationToast.requestRedraw();
     m_osdOverlay.requestRedraw();
+    m_notificationIsland.requestRedraw();
     m_lockScreen.requestLayout();
     m_colorPickerDialogPopup.requestRedraw();
     m_glyphPickerDialogPopup.requestRedraw();

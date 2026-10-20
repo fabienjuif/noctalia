@@ -26,6 +26,17 @@ collapse_on_dismiss      = true        # slide remaining toasts to close gaps wh
 keep_dismissed_in_history = true       # keep history entries when their toasts are dismissed
 max_visible              = 0           # maximum on-screen toasts; 0 = fill available space (all visible)
 history_retention_hours  = 0           # delete stored history older than this; 0 keeps it indefinitely
+style                    = "card"      # card | island (one-line island instead of toast cards)
+
+# Used when style = "island"; same keys as [osd].
+[notification.island]
+position      = "top_left"
+over_bars     = true
+style         = "island"
+fill_bar_gap  = true                   # sit between the top bar's center and end sections
+gap_margin    = 42
+fit_content   = true
+max_width     = 980
 
 [notification.filter.rhythmbox]
 enabled         = true
@@ -62,6 +73,11 @@ play_sound      = true
 - `history_retention_hours = 0` (default) keeps notification history entries forever. Set to a positive integer (1–8760) to automatically remove entries older than that many hours from control-center history. Active on-screen toasts are never removed. Configure in **Settings → Notifications → History**.
 - `max_visible = 0` (default) fills all available vertical screen space with notification toasts. Set to a positive integer (1–20) to limit how many toasts are visible at once; excess toasts are queued off-screen and promoted when slots free up. Configure in **Settings → Notifications → Toasts**.
 - `width = 360` (default) toast width in pixels before `scale` (`240`–`500`). Configure in **Settings → Notifications → Toasts**.
+- `style = "island"` replaces toast cards with a one-line island: the app icon, then the summary and body. It shows the
+  newest notification still in history and stays until that entry is deleted, then falls back to the previous one.
+  Clicking it runs the notification's default action, or opens the notifications tab when there is none. It is drawn by
+  a second OSD overlay configured by `[notification.island]`, which takes every [`[osd]`](/noctalia/configuration/shell/#osd)
+  key; the toast-only keys above do not apply. Hidden while Do Not Disturb is on.
 
 ## Filtering
 

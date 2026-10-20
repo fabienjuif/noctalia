@@ -111,6 +111,14 @@ namespace noctalia::config::schema {
         field(&OsdConfig::followFocusedOutput, "follow_focused_output"),
         field(&OsdConfig::offsetX, "offset_x", Range<std::int64_t>{0, std::nullopt}),
         field(&OsdConfig::offsetY, "offset_y", Range<std::int64_t>{0, std::nullopt}),
+        field(&OsdConfig::overBars, "over_bars"),
+        field(&OsdConfig::style, "style"),
+        field(&OsdConfig::lengthScale, "length_scale", Range<float>{0.5F, 3.0F}),
+        field(&OsdConfig::fontScale, "font_scale", Range<float>{0.5F, 3.0F}),
+        field(&OsdConfig::fillBarGap, "fill_bar_gap"),
+        field(&OsdConfig::gapMargin, "gap_margin", Range<std::int64_t>{0, 500}),
+        field(&OsdConfig::maxWidth, "max_width", Range<std::int64_t>{0, 10000}),
+        field(&OsdConfig::fitContent, "fit_content"),
         field(&OsdConfig::monitors, "monitors"),
         subTable(&OsdConfig::kinds, "kinds", osdKindsSchema()),
     };
@@ -309,6 +317,8 @@ namespace noctalia::config::schema {
         field(&NotificationConfig::keepDismissedInHistory, "keep_dismissed_in_history"),
         field(&NotificationConfig::historyRetentionHours, "history_retention_hours", Range<std::int64_t>{0, 8760}),
         field(&NotificationConfig::maxVisible, "max_visible", Range<std::int64_t>{0, 20}),
+        field(&NotificationConfig::style, "style"),
+        subTable(&NotificationConfig::island, "island", osdSchema()),
         custom<NotificationConfig>(
             "blacklist",
             [](const toml::table& tbl, NotificationConfig& out, std::string_view, Diagnostics&) {

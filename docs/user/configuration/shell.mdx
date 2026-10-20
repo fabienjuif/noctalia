@@ -402,6 +402,14 @@ border_width = 1         # outline stroke width in px; raise for a thicker outli
 follow_focused_output = false # show a new OSD on the focused output; keep it pinned until it disappears
 offset_x = 20            # absolute horizontal margin from the screen edge
 offset_y = 8             # absolute vertical margin from the screen edge
+over_bars = false        # measure offsets from the screen edge, not the bars, so the OSD can sit on a bar
+style = "card"           # card | island (pill card that unrolls from its vertical center)
+length_scale = 1.0       # horizontal card length multiplier (0.5 to 3.0)
+font_scale = 1.0         # glyph and text size multiplier on top of scale (0.5 to 3.0)
+fill_bar_gap = false     # stretch across the gap between the top bar's center and end sections (top_left position)
+gap_margin = 0           # px kept free on each side when fill_bar_gap is on
+max_width = 0            # cap in px for the fill_bar_gap card, centered in the gap; 0 = no cap
+fit_content = false      # with fill_bar_gap: width follows the text (1em padding), up to the gap / max_width
 # monitors = ["DP-1"]    # connector names; omit or leave empty for all monitors
 
 [osd.kinds]

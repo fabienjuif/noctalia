@@ -840,6 +840,16 @@ struct OsdConfig {
   bool followFocusedOutput = false;
   int offsetX = 20;
   int offsetY = 8;
+  // Local patch: ignore bars' exclusive zones so offsets can place the OSD on top of a bar.
+  bool overBars = false;
+  // Local patch: "island" = pill card that unrolls from its vertical center, to sit among bar capsules.
+  std::string style = "card";
+  float lengthScale = 1.0F; // horizontal card length multiplier
+  float fontScale = 1.0F;   // glyph and text size multiplier, on top of scale
+  bool fillBarGap = false;  // stretch between the top bar's center and end sections (needs a top_* position)
+  int gapMargin = 0;        // logical px kept free on each side of the stretched card
+  int maxWidth = 0;         // cap on the stretched card, centered in the gap; 0 = no cap
+  bool fitContent = false;  // with fill_bar_gap: size to the text (1em padding) instead of the whole gap
   std::vector<std::string> monitors;
   OsdKindsConfig kinds;
 
@@ -868,6 +878,10 @@ struct NotificationConfig {
   bool keepDismissedInHistory = true;
   int historyRetentionHours = 0;
   int maxVisible = 0; // 0 = unlimited (space-based only)
+  // Local patch: "island" hides the toast stack and shows the latest notification on one line through a second
+  // OSD overlay configured by `island` (same keys as [osd]).
+  std::string style = "card";
+  OsdConfig island;
 
   std::vector<NotificationFilterConfig> filters;
 
