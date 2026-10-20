@@ -1,6 +1,7 @@
 #include "shell/control_center/tabs/notifications_tab.h"
 
 #include "compositors/compositor_platform.h"
+#include "core/input/keybind_matcher.h"
 #include "core/log.h"
 #include "i18n/i18n.h"
 #include "net/uri.h"
@@ -968,6 +969,15 @@ void NotificationsTab::toggleDoNotDisturb() {
   (void)m_notifications->toggleDoNotDisturb();
   syncDndButton();
   PanelManager::instance().refresh();
+}
+
+bool NotificationsTab::handleKey(std::uint32_t sym, std::uint32_t modifiers, bool pressed, bool preedit) {
+  if (!pressed || preedit || m_filtered.empty() || !KeybindMatcher::matches(KeybindAction::Delete, sym, modifiers)) {
+    return false;
+  }
+  const NotificationHistoryEntry* top = m_filtered.front();
+  removeNotificationEntry(top->notification.id, top->active);
+  return true;
 }
 
 void NotificationsTab::removeNotificationEntry(uint32_t id, bool wasActive) {
