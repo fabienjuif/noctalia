@@ -954,6 +954,7 @@ void PanelManager::openPanel(const std::string& panelId, PanelOpenRequest reques
     m_detachedRevealProgress = 1.0F;
     m_attachedRevealDirection = AttachedRevealDirection::Down;
     m_detachedRevealDirection = AttachedRevealDirection::Down;
+    m_detachedRevealWipe = false;
     m_keyboardRelaxTimer.stop();
     m_attachedBarPosition.clear();
     m_sourceBarName.clear();
@@ -1211,6 +1212,7 @@ void PanelManager::openPanel(const std::string& panelId, PanelOpenRequest reques
     m_detachedRevealProgress = 1.0F;
     m_attachedRevealDirection = AttachedRevealDirection::Down;
     m_detachedRevealDirection = AttachedRevealDirection::Down;
+    m_detachedRevealWipe = false;
     m_keyboardRelaxTimer.stop();
     m_attachedBarPosition.clear();
     m_attachedPanelGeometry.reset();
@@ -1239,6 +1241,7 @@ void PanelManager::openPanel(const std::string& panelId, PanelOpenRequest reques
   m_detachedRevealProgress = 0.0F;
   m_attachedRevealDirection = AttachedRevealDirection::Down;
   m_detachedRevealDirection = detachedDirection;
+  m_detachedRevealWipe = useScreenPosition;
   m_attachedPanelGeometry.reset();
   m_attachedToBar = false;
   configureSurfaceCallbacks(*m_surface);
@@ -1606,6 +1609,7 @@ void PanelManager::destroyPanel() {
   m_detachedRevealProgress = 1.0F;
   m_attachedRevealDirection = AttachedRevealDirection::Down;
   m_detachedRevealDirection = AttachedRevealDirection::Down;
+  m_detachedRevealWipe = false;
   m_keyboardRelaxTimer.stop();
   m_attachedBarPosition.clear();
   m_sourceBarName.clear();
@@ -2266,9 +2270,29 @@ void PanelManager::applyDetachedReveal(float progress) {
   float clipW = surfaceW;
   float clipH = surfaceH;
 
-  // Local patch: floating panels pop (scale + fade) instead of wiping in from the bar side.
-  (void)m_detachedRevealDirection;
-  if (m_detachedRevealContentNode != nullptr) {
+  // Local patch: floating panels pop (scale + fade) instead of wiping in from the bar side. Panels pinned to a
+  // screen edge (e.g. a bottom_center launcher) slide in from that edge like attached panels; the upstream
+  // in-place wipe read as an unroll.
+  float slideX = 0.0F;
+  float slideY = 0.0F;
+  if (m_detachedRevealWipe) {
+    const float travelX = surfaceW * (1.0F - m_detachedRevealProgress);
+    const float travelY = surfaceH * (1.0F - m_detachedRevealProgress);
+    switch (m_detachedRevealDirection) {
+    case AttachedRevealDirection::Down:
+      slideY = -travelY;
+      break;
+    case AttachedRevealDirection::Up:
+      slideY = travelY;
+      break;
+    case AttachedRevealDirection::Right:
+      slideX = -travelX;
+      break;
+    case AttachedRevealDirection::Left:
+      slideX = travelX;
+      break;
+    }
+  } else if (m_detachedRevealContentNode != nullptr) {
     const float popScale = 0.9F + 0.1F * rawProgress;
     m_detachedRevealContentNode->setScale(popScale);
     m_detachedRevealContentNode->setOpacity(m_detachedRevealProgress);
@@ -2277,7 +2301,7 @@ void PanelManager::applyDetachedReveal(float progress) {
   if (m_detachedRevealClipNode != nullptr && m_detachedRevealContentNode != nullptr) {
     m_detachedRevealClipNode->setPosition(clipX, clipY);
     m_detachedRevealClipNode->setFrameSize(clipW, clipH);
-    m_detachedRevealContentNode->setPosition(-clipX, -clipY);
+    m_detachedRevealContentNode->setPosition(slideX - clipX, slideY - clipY);
     m_detachedRevealContentNode->setFrameSize(surfaceW, surfaceH);
   }
 
@@ -2285,9 +2309,9 @@ void PanelManager::applyDetachedReveal(float progress) {
     m_contentNode->setOpacity(panelRevealContentOpacity(m_detachedRevealProgress));
   }
   applyPanelCompositorBlur(
-      m_panelInsetX, m_panelInsetY, static_cast<int>(m_panelVisualWidth), static_cast<int>(m_panelVisualHeight),
-      static_cast<int>(std::lround(clipX)), static_cast<int>(std::lround(clipY)), static_cast<int>(std::lround(clipW)),
-      static_cast<int>(std::lround(clipH))
+      m_panelInsetX + static_cast<int>(std::lround(slideX)), m_panelInsetY + static_cast<int>(std::lround(slideY)),
+      static_cast<int>(m_panelVisualWidth), static_cast<int>(m_panelVisualHeight), static_cast<int>(std::lround(clipX)),
+      static_cast<int>(std::lround(clipY)), static_cast<int>(std::lround(clipW)), static_cast<int>(std::lround(clipH))
   );
 }
 
@@ -2716,8 +2740,8 @@ void PanelManager::buildScene(std::uint32_t width, std::uint32_t height) {
     } else {
       applyDetachedReveal(0.0F);
       m_animations.animate(
-          0.0F, 1.0F, Style::animNormal, Easing::EaseOutBack, [this](float v) { applyDetachedReveal(v); }, {},
-          m_sceneRoot.get()
+          0.0F, 1.0F, Style::animNormal, m_detachedRevealWipe ? Easing::EaseOutCubic : Easing::EaseOutBack,
+          [this](float v) { applyDetachedReveal(v); }, {}, m_sceneRoot.get()
       );
     }
 

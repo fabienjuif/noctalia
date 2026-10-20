@@ -276,6 +276,7 @@ private:
   float m_detachedRevealProgress = 1.0F;
   AttachedRevealDirection m_attachedRevealDirection = AttachedRevealDirection::Down;
   AttachedRevealDirection m_detachedRevealDirection = AttachedRevealDirection::Down;
+  bool m_detachedRevealWipe = false;
   Timer m_keyboardRelaxTimer;
   Timer m_captureCloseTimer;
   wl_callback* m_captureCloseFrame = nullptr;
