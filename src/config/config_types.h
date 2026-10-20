@@ -147,6 +147,8 @@ struct BarConfig {
   std::string layer = "top"; // top | overlay; attached panels use the same layer
   std::int32_t thickness = Style::barThicknessDefault;
   float backgroundOpacity = 1.0F;
+  // Unset = attached panels follow backgroundOpacity, which leaves them see-through on a transparent bar.
+  std::optional<float> panelBackgroundOpacity;
   bool compositorBlur = true;
   // Inside outline for the bar background; attached panels inherit the resolved values.
   ColorSpec border = colorSpecFromRole(ColorRole::Outline);

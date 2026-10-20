@@ -2376,6 +2376,7 @@ namespace noctalia::config::schema {
         barLayerField(),
         field(&BarConfig::thickness, "thickness", kBarThicknessRange),
         field(&BarConfig::backgroundOpacity, "background_opacity", kBarOpacityRange),
+        optionalFloatField(&BarConfig::panelBackgroundOpacity, "panel_background_opacity", kBarOpacityRange),
         field(&BarConfig::compositorBlur, "compositor_blur"),
         colorField(&BarConfig::border, "border"),
         field(&BarConfig::borderWidth, "border_width", kBarBorderWidthRange),
