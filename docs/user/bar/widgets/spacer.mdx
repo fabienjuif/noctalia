@@ -23,9 +23,10 @@ Two expanding spacers around a widget center it in the free space of its lane, w
 
 ```toml
 [bar.default]
-end = ["fill", "media", "fill", "tray", "volume", "session"]
+end = ["spacer", "media", "spacer", "tray", "volume", "session"]
 
-[widget.fill]
-type   = "spacer"
+[widget.spacer]
 expand = true
 ```
+
+This makes every plain `spacer` expand. To keep fixed spacers too, give the expanding ones their own name, for example `[widget.spring]` with `type = "spacer"` and `expand = true`.
