@@ -981,6 +981,7 @@ bool NotificationsTab::handleKey(std::uint32_t sym, std::uint32_t modifiers, boo
   if (!pressed || preedit || !KeybindMatcher::matches(KeybindAction::Delete, sym, modifiers)) {
     return false;
   }
+  dropVanishedFiltered();
   const NotificationHistoryEntry* top = filteredEntry(0);
   if (top == nullptr) {
     return false;
