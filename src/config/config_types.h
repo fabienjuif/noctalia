@@ -63,6 +63,7 @@ inline constexpr std::string_view kCapsuleGroupTokenPrefix = "group:";
 
 struct BarDeadZoneOverride {
   std::optional<std::unordered_map<std::string, std::string>> actions;
+  std::optional<bool> clickThrough;
 
   bool operator==(const BarDeadZoneOverride&) const = default;
 };
@@ -130,6 +131,9 @@ struct BarDeadZoneConfig {
   // Gesture -> action bindings for the parts of the bar no widget covers. Same grammar as widget
   // actions; see widget_action.h.
   std::unordered_map<std::string, std::string> actions;
+  // Shrink the bar's input region to its widget sections so clicks on the rest of the bar reach
+  // the window below. The dead zone then takes no input, so its actions never fire.
+  bool clickThrough = false;
 
   bool operator==(const BarDeadZoneConfig&) const = default;
 };
@@ -240,6 +244,8 @@ struct SessionPanelActionConfig {
   std::optional<std::string> glyph = std::nullopt;
   SessionActionButtonVariant variant = SessionActionButtonVariant::Default;
   std::optional<KeyChord> shortcut = std::nullopt;
+  // Lock-screen trigger. Never a text-producing key: the password field owns those.
+  std::optional<KeyChord> lockscreenShortcut = std::nullopt;
   /// When > 0, the action arms a countdown (seconds) before running; activate again to confirm immediately.
   double countdownSeconds = 0.0;
 
@@ -1145,8 +1151,11 @@ struct ShellConfig {
     PanelPlacement wallpaperPlacement = PanelPlacement::Attached;
     PanelPlacement sessionPlacement = PanelPlacement::Attached;
     PanelPlacement polkitPlacement = PanelPlacement::Floating;
-    // Floating screen position per panel (one of kPanelPositions). "auto" = bar-relative.
-    // Launcher/clipboard default to "center" (the historical center-screen behavior).
+    // Screen position per panel (one of kPanelPositions). Pins a floating panel to that
+    // screen position. An attached panel follows it only when the position lies on its
+    // bar's edge (e.g. bottom_right on a bottom bar aligns to the bar's right end); any
+    // other value keeps it bar-centered. Launcher/clipboard default to "center" (the
+    // historical center-screen behavior for their floating default).
     std::string launcherPosition = "center";
     std::string clipboardPosition = "center";
     std::string controlCenterPosition = "auto";
@@ -1879,6 +1888,7 @@ struct ControlCenterConfig {
   std::int32_t width = kDefaultWidth; // full-sidebar logical width; compact/none modes scale down from this
   bool showShortcutLabels = true;
   bool showSessionButton = true;
+  bool circularAvatar = true;
   CalendarTabConfig calendarTab;
   MediaTabConfig mediaTab;
   bool operator==(const ControlCenterConfig&) const = default;

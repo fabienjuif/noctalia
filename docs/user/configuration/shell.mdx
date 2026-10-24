@@ -36,7 +36,7 @@ lang                  = ""              # empty = auto-detect; otherwise BCP-47 
 time_format           = "{:%H:%M}"      # default time format for shell UI without its own setting
 date_format           = "%A, %x"        # default date format for shell UI without its own setting
 offline_mode          = false           # block all outgoing HTTP requests
-# panel_anchor_bar   = "main"           # bar panels attach to without a source bar; omit = first enabled bar
+# panel_anchor_bar   = "main"           # bar every panel attaches to, overriding the source bar; omit = per-source
 external_ip_enabled   = false           # resolve the WAN IP for the Control Center network tab and network widget tooltip
 telemetry_enabled     = false           # anonymous startup ping
 setup_wizard_enabled = true              # open first-run wizard while the marker is missing
@@ -91,15 +91,16 @@ control_center_placement = "attached" # attached | floating
 wallpaper_placement      = "attached" # attached | floating
 session_placement        = "attached" # attached | floating
 polkit_placement         = "floating" # attached | floating
-launcher_position        = "center"   # auto | center | top_left | … (floating only)
-clipboard_position       = "center"   # auto | center | top_left | … (floating only)
-polkit_position          = "center"   # auto | center | top_left | … (floating only)
+launcher_position        = "center"   # auto | center | top_left | …
+clipboard_position       = "center"   # auto | center | top_left | …
+control_center_position  = "auto"     # auto | center | top_left | …
+polkit_position          = "center"   # auto | center | top_left | …
 floating_offset          = 8           # px gap between a floating panel and the bar edge
-open_near_click_control_center = false  # attached/floating: follow the bar click instead of bar-center
-open_near_click_launcher       = false  # attached/floating: follow the bar click instead of bar-center
-open_near_click_clipboard      = false  # attached/floating: follow the bar click instead of bar-center
-open_near_click_wallpaper      = false  # attached/floating: follow the bar click instead of bar-center
-open_near_click_session        = false  # attached/floating: follow the bar click instead of bar-center
+open_near_click_control_center = false  # attached/floating: open near the clicked bar widget instead of at *_position
+open_near_click_launcher       = false  # attached/floating: open near the clicked bar widget instead of at *_position
+open_near_click_clipboard      = false  # attached/floating: open near the clicked bar widget instead of at *_position
+open_near_click_wallpaper      = false  # attached/floating: open near the clicked bar widget instead of at *_position
+open_near_click_session        = false  # attached/floating: open near the clicked bar widget instead of at *_position
 
 [shell.launcher]
 layout = "full"            # full | simple
@@ -232,7 +233,7 @@ Notes:
 
 - `offline_mode` prevents the shell from making any outgoing HTTP requests (weather, community palettes, community templates, album art, remote notification icons, currency exchange rates, plugin recommendation metrics and changes). Distro packagers can default to `true` to comply with policies requiring explicit user consent for network access.
 
-- `panel_anchor_bar` names the bar that panels attach to when opened without a source bar (IPC, shortcuts, dock). Leave unset (default) to keep per-source behavior: the opening widget's bar, or the first enabled bar on the output. An unknown or disabled bar name fails loudly. Renaming the anchor bar in Settings updates this key to the new name; deleting it in Settings clears the key. Configure under **Settings → Panels → General**.
+- `panel_anchor_bar` names the bar that every panel attaches to, however it was opened. When set, it overrides the source bar: panels opened by clicking a widget on another bar still attach to the anchor bar. Leave unset (default) to keep per-source behavior: the opening widget's bar, or, for opens without a source bar (IPC, shortcuts, dock), the first enabled bar on the output. An unknown bar name fails loudly; a bar disabled on the current output logs a warning and the panel opens without bar attachment. Renaming the anchor bar in Settings updates this key to the new name; deleting it in Settings clears the key. Configure under **Settings → Panels → General**.
 
 - `external_ip_enabled`: when `true`, Noctalia resolves the connection's public WAN IP via `api.noctalia.dev/ip` and shows it in the Control Center network tab (next to the local address) and in the network widget tooltip. Resolution runs in the background while connected and re-resolves automatically after connection or VPN changes. Honors `offline_mode`.
 
@@ -326,13 +327,13 @@ Notes:
 
 - `shell.panel.launcher_placement`, `clipboard_placement`, `control_center_placement`, `wallpaper_placement`, `session_placement`, and `polkit_placement` accept only `attached` or `floating`. An attached panel keeps its own layer surface and anchors it to the host bar's inward edge; floating placement opens it detached. `center` is a floating `*_position`, not a third placement. Defaults are floating at the center position for Launcher, Clipboard, and the polkit auth prompt; Control Center, Wallpaper, and Session default to attached.
 
-- Per-panel `*_position` keys (`launcher_position`, `clipboard_position`, `control_center_position`, `wallpaper_position`, `session_position`, `polkit_position`) apply when placement is `floating`. `auto` keeps the panel bar-relative; `center` and the edge/corner tokens anchor on screen (same vocabulary as notification/OSD position).
+- Per-panel `*_position` keys (`launcher_position`, `clipboard_position`, `control_center_position`, `wallpaper_position`, `session_position`, `polkit_position`) name a screen position (same vocabulary as notification/OSD position). With `floating` placement, `auto` keeps the panel bar-relative and `center` or an edge/corner token pins it to that screen position. With `attached` placement, the panel follows the position only when it lies on the bar's edge: on a bottom bar, `bottom_left` and `bottom_right` align the panel to the bar's left or right end; on a right bar, `top_right` and `bottom_right` align it to the top or bottom end. Any other value keeps the attached panel centered on the bar. Configure under each panel's **Position** setting.
 
 - `shell.panel.floating_offset` sets the gap in pixels a floating panel keeps from the bar edge, or from the screen edge when it is pinned with a `*_position` (default `8`). It also spaces panels using the reserved edge area when multiple bars share an edge. `attached` panels ignore it.
 
-- When multiple enabled bars resolve to the same edge on one monitor, exact source-bar attachment is ambiguous. In that case attached/floating panels use the compositor's reserved edge area and open outside the bar stack instead of anchoring to one bar. Prefer setting `shell.panel_anchor_bar` when you have more than one bar and open panels via IPC or shortcuts.
+- When multiple enabled bars resolve to the same edge on one monitor, exact source-bar attachment is ambiguous. In that case attached/floating panels use the compositor's reserved edge area and open outside the bar stack instead of anchoring to one bar. Setting `shell.panel_anchor_bar` avoids this, at the cost of attaching every panel to that bar, including panels opened from widgets on other bars.
 
-- `shell.panel.open_near_click_control_center`, `open_near_click_launcher`, `open_near_click_clipboard`, `open_near_click_wallpaper`, and `open_near_click_session` position attached or floating panels near the click location on the bar instead of centering them along the bar. They are ignored when a panel is `floating` with a `*_position` other than `auto`, since it is then pinned to a fixed screen position.
+- `shell.panel.open_near_click_control_center`, `open_near_click_launcher`, `open_near_click_clipboard`, `open_near_click_wallpaper`, and `open_near_click_session` make a panel opened by clicking its bar widget appear next to that widget instead of at its `*_position` (centered or end-aligned along the bar). Panels opened without a click (IPC, shortcuts) still use `*_position`. They are ignored when a panel is `floating` with a `*_position` other than `auto`, since it is then pinned to a fixed screen position. Configure with each panel's **Open Near Clicked Widget** toggle.
 
 - `shell.launcher.layout` selects `full` (default) or `simple`. Full shows the profile, view tabs, and a toolbar with the search field and shortcuts. Simple shows a search field, an optional category chip row, and results at a fixed 560 × 500 size; `width`, `search_position`, `default_view`, `show_settings_button`, and `show_session_button` apply only to Full.
 
@@ -519,6 +520,8 @@ When enabled and `wlr-screencopy` is available, Noctalia can capture the desktop
 
 Configure under **`[lockscreen]`** in TOML, or use **Settings → Security → Lock Screen**. The **Desktop capture** and transition controls appear only when your compositor supports screencopy. Use **Wallpaper** to pick a custom lock screen image (empty uses the desktop wallpaper per output).
 
+The power buttons on the lock screen come from the session actions; to trigger one from the keyboard (for example suspend on Escape), set its `lockscreen_shortcut` as described in [Lock screen shortcuts](#lock-screen-shortcuts).
+
 Lock screen transitions have their own effect pool, duration, and edge smoothness. They do not read or modify the settings under **`[wallpaper]`**. Set `transition = []` to disable lock and unlock animations.
 
 Normal manual and idle locks retain the configured transitions. If Noctalia has requested screen-off, or compositor feedback reports an output powered off, that lock skips desktop-based entry and exit animations. Its first frame contains the complete configured lock screen, so waking an output cannot replay a desktop transition. This decision remains in effect until unlock, including config reloads and newly connected outputs. The explicit **Desktop capture** background setting still applies.
@@ -654,16 +657,17 @@ Panel-level settings under `[shell.session]`:
 
 Each entry in the `[[shell.session.actions]]` array takes:
 
-| Field               | Type   | Default     | Description                                                                                                                                                                                                                                          |
-| ------------------- | ------ | ----------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `action`            | string | *required*  | `lock`, `logout`, `suspend`, `lock_and_suspend`, `reboot`, `reboot_uefi`, `shutdown`, or `command` (custom entry).                                                                                                                                   |
-| `enabled`           | bool   | `true`      | When `false`, the button is hidden.                                                                                                                                                                                                                  |
-| `command`           | string | *unset*     | Optional. If set, the string is run with `/bin/sh -c` instead of the built-in handler. For `action = "command"`, this field is required.                                                                                                             |
-| `label`             | string | *unset*     | Optional button label (otherwise translated defaults).                                                                                                                                                                                               |
-| `glyph`             | string | *unset*     | Optional bar-style icon id (otherwise defaults per action). Under **Session panel** in Settings → Power, open a row’s settings (cog) editor and use the icon preview to pick a glyph.                                                                |
-| `shortcut`          | string | `"1"`–`"5"` | Optional keyboard shortcut that triggers the action while the session panel is open. Any XKB key name (e.g. `1`, `F1`, `Escape`) or modifier combo (`Ctrl+1`). Clear to disable.                                                                     |
-| `countdown_seconds` | number | `0`         | When greater than zero, the first activation starts a per-entry countdown (shown on the button badge). Activate the same entry again to run immediately, or wait for the timer. **Escape** or moving to another entry cancels. `0` runs immediately. |
-| `variant`           | string | `"default"` | Button style: `default`, `primary`, `secondary`, `destructive` (warning), or `outline`.                                                                                                                                                              |
+| Field                 | Type   | Default     | Description                                                                                                                                                                                                                                                                                                                                                                    |
+| --------------------- | ------ | ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `action`              | string | *required*  | `lock`, `logout`, `suspend`, `lock_and_suspend`, `reboot`, `reboot_uefi`, `shutdown`, or `command` (custom entry).                                                                                                                                                                                                                                                             |
+| `enabled`             | bool   | `true`      | When `false`, the button is hidden.                                                                                                                                                                                                                                                                                                                                            |
+| `command`             | string | *unset*     | Optional. If set, the string is run with `/bin/sh -c` instead of the built-in handler. For `action = "command"`, this field is required.                                                                                                                                                                                                                                       |
+| `label`               | string | *unset*     | Optional button label (otherwise translated defaults).                                                                                                                                                                                                                                                                                                                         |
+| `glyph`               | string | *unset*     | Optional bar-style icon id (otherwise defaults per action). Under **Session panel** in Settings → Power, open a row’s settings (cog) editor and use the icon preview to pick a glyph.                                                                                                                                                                                          |
+| `shortcut`            | string | `"1"`–`"5"` | Optional keyboard shortcut that triggers the action while the session panel is open. Any XKB key name (e.g. `1`, `F1`, `Escape`) or modifier combo (`Ctrl+1`). Clear to disable.                                                                                                                                                                                               |
+| `lockscreen_shortcut` | string | *unset*     | Optional keyboard shortcut that triggers the action from the lock screen. Only actions shown as lock-screen buttons respond. Keys that type text (letters, digits, symbols, alone or with **Shift**) are rejected because the password field owns them; use a non-printable key (`Escape`, `F1`) or a `Ctrl`/`Alt` combo. See [Lock screen shortcuts](#lock-screen-shortcuts). |
+| `countdown_seconds`   | number | `0`         | When greater than zero, the first activation starts a per-entry countdown (shown on the button badge). Activate the same entry again to run immediately, or wait for the timer. **Escape** or moving to another entry cancels. `0` runs immediately.                                                                                                                           |
+| `variant`             | string | `"default"` | Button style: `default`, `primary`, `secondary`, `destructive` (warning), or `outline`.                                                                                                                                                                                                                                                                                        |
 
 Omitting `[[shell.session.actions]]` entirely keeps the default five actions. To define your own list, declare one or more tables. An explicit empty array hides all session buttons:
 
@@ -693,6 +697,18 @@ action = "shutdown"
 variant = "destructive"
 countdown_seconds = 5
 ```
+
+#### Lock screen shortcuts
+
+The lock screen shows the session actions as buttons (except `lock`, and `lock_and_suspend` when a plain `suspend` row exists). Give a row a `lockscreen_shortcut` to trigger it from the keyboard without unlocking; with `show_shortcuts` on, the key is shown on the button.
+
+```toml
+[[shell.session.actions]]
+action = "lock_and_suspend"
+lockscreen_shortcut = "Escape"
+```
+
+When a shortcut uses the same key as **Cancel** (Escape by default), the first press clears a typed password and the next press runs the action. Shortcuts are ignored while the screens are off and for one second after they turn back on or the system resumes, so the key that wakes the screen never runs an action.
 
 ### Greeter sync
 

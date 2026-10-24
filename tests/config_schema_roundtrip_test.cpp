@@ -227,6 +227,7 @@ location = "https://example.invalid/bad"
         {"back", "media previous"},
         {"forward", "media next"},
     };
+    bar.deadZone.clickThrough = true;
     bar.padding = 12;
     bar.widgetSpacing = 8;
     bar.shadow = false;
@@ -297,6 +298,7 @@ location = "https://example.invalid/bad"
         {"left", "exec notify-send bar-left"},
         {"right", "exec notify-send bar-right"},
     };
+    ovr.deadZone.clickThrough = false;
     ovr.padding = 11;
     ovr.widgetSpacing = 7;
     ovr.shadow = true;
@@ -454,6 +456,7 @@ location = "https://example.invalid/bad"
     c.bluetooth.connectWhenEnabled = true;
     c.controlCenter.sidebarMode = ControlCenterSidebarMode::Full;
     c.controlCenter.sidebarSectionMode = ControlCenterSidebarMode::None;
+    c.controlCenter.circularAvatar = false;
     c.controlCenter.calendarTab.showEventsCard = false;
     c.controlCenter.calendarTab.showWeekNumbers = true;
     c.controlCenter.mediaTab.showVisualizer = false;
@@ -1115,7 +1118,8 @@ color = "#0000FF"
 blend = false
 )");
     Config config;
-    liftTemplateConfigCustomColors(root, config);
+    Diagnostics diag;
+    liftTemplateConfigCustomColors(root, config, diag);
     if (config.theme.templates.customColors.size() != 2) {
       fail("config.custom_colors lift: expected two custom colors in config");
     }
@@ -1193,14 +1197,17 @@ widget_spacing = 8
     middle = "none"
     right = "media toggle"
 
-    [default.dead_zone.actions]
-    back = "media previous"
-    forward = "media next"
-    left = "exec notify-send bar-left"
-    middle = "exec notify-send bar-middle"
-    right = "exec notify-send bar-right"
-    scroll_down = "exec notify-send bar-scroll-down"
-    scroll_up = "exec notify-send bar-scroll-up"
+    [default.dead_zone]
+    click_through = true
+
+        [default.dead_zone.actions]
+        back = "media previous"
+        forward = "media next"
+        left = "exec notify-send bar-left"
+        middle = "exec notify-send bar-middle"
+        right = "exec notify-send bar-right"
+        scroll_down = "exec notify-send bar-scroll-down"
+        scroll_up = "exec notify-send bar-scroll-up"
 
     [default.monitor.DP-1]
     auto_hide = false
@@ -1256,9 +1263,12 @@ widget_spacing = 8
         middle = "none"
         right = "media toggle"
 
-        [default.monitor.DP-1.dead_zone.actions]
-        left = "exec notify-send bar-left"
-        right = "exec notify-send bar-right"
+        [default.monitor.DP-1.dead_zone]
+        click_through = false
+
+            [default.monitor.DP-1.dead_zone.actions]
+            left = "exec notify-send bar-left"
+            right = "exec notify-send bar-right"
 
         [[default.monitor.DP-1.capsule_group]]
         accordion = false
