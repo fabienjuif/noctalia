@@ -419,8 +419,6 @@ _wlr_ls_c = custom_target('wlr-layer-shell-unstable-v1-client-source',
 _protocol_sources += _wlr_ls_c
 _protocol_headers += _wlr_ls_h
 
-alias_target('wayland-protocol-headers', _protocol_headers)
-
 # ── Main sources ──────────────────────────────────────────────────────────────
 _noctalia_sources = files(
   'src/app/application.cpp',
@@ -447,6 +445,7 @@ _noctalia_sources = files(
   'src/calendar/google_client.cpp',
   'src/calendar/google_oauth.cpp',
   'src/calendar/ical_parser.cpp',
+  'src/calendar/sync_failure.cpp',
   'src/calendar/vdir_reader.cpp',
   'src/config/atomic_file.cpp',
   'src/config/config_export.cpp',
@@ -687,6 +686,7 @@ _noctalia_sources = files(
   'src/ui/dialogs/glyph_picker_dialog.cpp',
   'src/ui/dialogs/glyph_picker_dialog_popup.cpp',
   'src/ui/dialogs/layer_popup_host.cpp',
+  'src/ui/dialogs/search_picker_popup.cpp',
   'src/shell/launcher/launcher_panel.cpp',
   'src/shell/switcher/window_switcher.cpp',
   'src/shell/switcher/window_switcher_style.cpp',
@@ -747,7 +747,6 @@ _noctalia_sources = files(
   'src/shell/settings/font_weight_catalog.cpp',
   'src/shell/settings/widget_settings_registry.cpp',
   'src/shell/settings/widget_add_popup.cpp',
-  'src/shell/settings/search_picker_popup.cpp',
   'src/shell/settings/settings_dialog_presenter.cpp',
   'src/shell/settings/settings_modal_host.cpp',
   'src/shell/settings/settings_sheet.cpp',
@@ -761,6 +760,7 @@ _noctalia_sources = files(
   'src/shell/tray/tray_drawer_panel.cpp',
   'src/shell/tray/tray_settings.cpp',
   'src/shell/tray/tray_menu.cpp',
+  'src/shell/tray/tray_theme_path_index.cpp',
   'src/shell/backdrop/backdrop.cpp',
   'src/shell/backdrop/backdrop_surface.cpp',
   'src/shell/overview/overview_launcher_capture.cpp',
@@ -872,6 +872,7 @@ _noctalia_sources = files(
   'src/capture/screencopy_util.cpp',
   'src/capture/screenshot_capture.cpp',
   'src/capture/screenshot_image.cpp',
+  'src/capture/screenshot_backdrop.cpp',
   'src/capture/screenshot_service.cpp',
   'src/capture/screenshot_region_overlay.cpp',
   'src/capture/screenshot_region_badge.cpp',
@@ -1055,6 +1056,13 @@ else
   )
 endif
 
+# Headers clang-tidy needs before any compile has run (see `just lint`).
+_generated_headers = _protocol_headers
+if git_program.found()
+  _generated_headers += _git_revision_h
+endif
+alias_target('generated-headers', _generated_headers)
+
 # ── Include directories ────────────────────────────────────────────────────────
 _noctalia_inc = [
   include_directories('src'),
@@ -1237,8 +1245,10 @@ if build_tests
     'event_merge',
     'ext_toplevel_capture_target',
     'fcitx_status',
+    'format_units',
     'freedesktop_key_file',
     'firefox_theme_manifest',
+    'font_family_catalog',
     'google_client_calendar_list',
     'google_client_reminders',
     'greeter_appearance_sync',
@@ -1256,6 +1266,7 @@ if build_tests
     'image_source_log',
     'inotify',
     'input_area',
+    'input_bidi',
     'input_dispatcher',
     'input_password_mode',
     'input_readline_shortcuts',
@@ -1287,6 +1298,7 @@ if build_tests
     'privacy_capture_classification',
     'plugin_bindings',
     'plugin_catalog',
+    'plugin_file_privacy',
     'plugin_git_export',
     'plugin_i18n',
     'plugin_lifecycle',
@@ -1300,6 +1312,7 @@ if build_tests
     'scheme',
     'screenshot_region_badge',
     'screenshot_ipc_request',
+    'screenshot_backdrop',
     'scrollbar_geometry',
     'secret_store',
     'security_primitives',
@@ -1317,6 +1330,7 @@ if build_tests
     'time_format',
     'toplevel_thumbnail_capture',
     'tray_identifier',
+    'tray_theme_path_index',
     'ui_tree_reconciler',
     'upower_charge_limit',
     'upower_device_catalog',
@@ -1331,6 +1345,7 @@ if build_tests
     'widget_action',
     'widget_definition',
     'widget_settings_schema',
+    'window_minimize_state',
     'window_switcher_membership',
     'window_switcher_shortcut_state',
     'workspace_alert_service',
