@@ -15,8 +15,9 @@ void SpacerWidget::create() {
 
 void SpacerWidget::doLayout(Renderer& /*renderer*/, float /*containerWidth*/, float /*containerHeight*/) {
   if (root() != nullptr) {
-    // An expanding spacer has no length of its own: the lane's flex layout hands it its share.
-    const float length = m_expand ? 0.0F : m_fixedLength * m_contentScale;
+    // An expanding spacer keeps its length: a stretched lane replaces it with a flex share, and everywhere else
+    // (center lane, capsule group, overflowing lane) it stays a plain spacer instead of collapsing.
+    const float length = m_fixedLength * m_contentScale;
     root()->setSize(m_verticalBar ? 0.0F : length, m_verticalBar ? length : 0.0F);
   }
 }
