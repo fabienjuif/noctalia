@@ -1184,7 +1184,7 @@ void CalendarService::googleFetchWithToken(
   m_google.fetchEvents(
       accessToken, selectedCalendars, now - kWindowBefore, now + kWindowAfter,
       [this, accountId, selectedCalendars, allowRefreshRetry](
-          calendar::SyncFailure failure, std::vector<CalendarSource> sources, std::vector<CalendarEvent> events
+          calendar::SyncFailure failure, const std::vector<CalendarSource>& sources, std::vector<CalendarEvent> events
       ) {
         if (failure == calendar::SyncFailure::Authentication && allowRefreshRetry) {
           refreshGoogleToken(

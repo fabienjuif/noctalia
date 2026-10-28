@@ -103,7 +103,7 @@ namespace calendar {
       }
     }
 
-    // Collapsing to the default rather than to "all" keeps a Google account following its sidebar ticks.
+    // A selection equal to the defaults is stored as [], so a Google account follows its sidebar ticks again.
     const bool matchesDefault = std::ranges::all_of(sources, [&](const CalendarSource& source) {
       return std::ranges::contains(next, source.id) == source.defaultSelected;
     });

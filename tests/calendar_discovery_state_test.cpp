@@ -66,7 +66,7 @@ int main() {
            calendar::parseCalendarSources(R"({"calendars":[{"id":"personal","name":"Personal"}]})")
                .front()
                .defaultSelected,
-           "discovery state saved before default_selected existed keeps every calendar selected"
+           "a calendar without default_selected is selected by default"
        )
       && ok;
   ok = expectIds(calendar::selectedCalendarSourceIds(google, {}), {"me@example.com", "team@group.calendar.google.com"})
